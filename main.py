@@ -16,6 +16,7 @@ def on_mouse_click(event, x, y, flags, frame):
         print frame[y, x]
 
 
+yellow = (0, 255, 255)
 lower_blue = np.array([100, 20, 20])
 upper_blue = np.array([125, 255, 255])
 kernel = np.ones((2, 2), np.uint8)
@@ -67,15 +68,15 @@ for filename in os.listdir(input_path):
 
     y_max = max(map(lambda l: l.y2, max_group))
 
-    cv2.line(img, (x_max, y_max), (x_max, y_min), (255, 0, 0), 2)
-    cv2.line(img, (x_min, y_max), (x_min, y_min), (255, 0, 0), 2)
-    cv2.line(img, (x_max, y_min), (x_min, y_min), (255, 0, 0), 2)
-    cv2.line(img, (x_min, y_max), (x_max, y_max), (255, 0, 0), 2)
+    cv2.line(img, (x_max, y_max), (x_max, y_min), yellow, 2)
+    cv2.line(img, (x_min, y_max), (x_min, y_min), yellow, 2)
+    cv2.line(img, (x_max, y_min), (x_min, y_min), yellow, 2)
+    cv2.line(img, (x_min, y_max), (x_max, y_max), yellow, 2)
 
-    cv2.line(black, (x_max, y_max), (x_max, y_min), (0, 0, 255), 2)
-    cv2.line(black, (x_min, y_max), (x_min, y_min), (0, 0, 255), 2)
-    cv2.line(black, (x_max, y_min), (x_min, y_min), (0, 0, 255), 2)
-    cv2.line(black, (x_min, y_max), (x_max, y_max), (0, 0, 255), 2)
+    cv2.line(black, (x_max, y_max), (x_max, y_min), yellow, 2)
+    cv2.line(black, (x_min, y_max), (x_min, y_min), yellow, 2)
+    cv2.line(black, (x_max, y_min), (x_min, y_min), yellow, 2)
+    cv2.line(black, (x_min, y_max), (x_max, y_max), yellow, 2)
 
     cv2.imwrite(output_path + 'line_' + filename, img)
     cv2.imwrite(output_path + 'only_line_' + filename, black)
