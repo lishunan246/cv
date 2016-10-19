@@ -14,7 +14,7 @@ class LineSegment:
         self.y2 = y2
         self.k = (y1 - y2) / (1.0 * (x1 - x2)) if x1 != x2 else float('nan')
         self.b = y1 - self.k * x1
-        self.theta = numpy.arctan(self.k) if x1 != x2 else math.pi / 2
+        self.theta = math.atan2(y1-y2,x1-x2)
         self.d = -self.b / self.k * numpy.sin(self.theta) if self.k != 0 else x1  # 到直线到原点的最近距离
     def update(self,theta):
         self.theta=theta

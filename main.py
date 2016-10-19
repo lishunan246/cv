@@ -31,15 +31,18 @@ for filename in os.listdir(input_path):
     edges = cv2.Canny(gravy, 50, 150, apertureSize=3)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=80, maxLineGap=10)
     line_group = []
+    black = np.zeros((height, width, depth), np.uint8)
     for line in lines:
         x1, y1, x2, y2 = line[0]
         ls = LineSegment(x1, y1, x2, y2)
+        cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.line(black, (x1, y1), (x2, y2), (0, 255, 0), 2)
         if len(line_group) == 0:  # first line group
             line_group.append([ls])
         else:
             done = False
             for i in range(0, len(line_group)):
-                if abs(line_group[i][0].theta - ls.theta) < 0.05:  # 比较斜率
+                if abs(line_group[i][0].theta - ls.theta) < 0.3:  # 比较斜率
                     line_group[i].append(ls)
                     done = True
                     break
@@ -51,12 +54,13 @@ for filename in os.listdir(input_path):
 
     avg_theta = sum([ls.theta for ls in max_group]) / float(len(max_group))
 
-    black = np.zeros((height, width, depth), np.uint8)
 
-    for ls in max_group:  # 根据斜率找到的线段
-        x1, y1, x2, y2 = ls.x1, ls.y1, ls.x2, ls.y2
-        cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        cv2.line(black, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+    for ls in max_group:
+        x1,x2,y1,y2=ls.x1,ls.x2,ls.y1,ls.y2
+        cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 3)
+        cv2.line(black, (x1, y1), (x2, y2), (0, 0, 255), 3)
+        # 根据斜率找到的线段
         ls.update(avg_theta)
 
     max_group.sort(key=lambda x: x.d)
