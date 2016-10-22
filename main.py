@@ -7,7 +7,8 @@ import os
 from LineSegment import LineSegment, LineSegmentGroup
 
 # 条形码比例3:2
-
+DST_WIDTH = 300
+DST_HEIGHT = 200
 yellow = (0, 255, 255)
 thickness = 10
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -19,8 +20,8 @@ for filename in os.listdir(input_path):
     img = original.copy()
     height, width, depth = img.shape
 
-    gravy = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gravy, 50, 150, apertureSize=3)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=80, maxLineGap=10)
     line_group = []
     black = np.zeros((height, width, depth), np.uint8)
@@ -87,19 +88,37 @@ for filename in os.listdir(input_path):
     x_avg = sum([ls.x for ls in max_group]) / (1.0 * len(max_group))
     y_avg = sum([ls.y for ls in max_group]) / (1.0 * len(max_group))
     xx = x_avg + 100
-    yy = y_avg + 100 * math.tan(line_min.theta)
+    yy = y_avg + 100 * math.tan(avg_theta)
 
     new_line = LineSegment(x_avg, y_avg, xx, yy)
-    new_line.update(line_min.theta)
+    new_line.update(avg_theta)
     delta_d = (line_min.d + line_max.d) / 2.0 - new_line.d
 
-    x_avg += delta_d * math.cos(line_min.theta + math.pi / 2.0)
-    y_avg += delta_d * math.sin(line_min.theta + math.pi / 2.0)
+    x_avg += delta_d * math.cos(avg_theta + math.pi / 2.0)
+    y_avg += delta_d * math.sin(avg_theta + math.pi / 2.0)
 
     cv2.circle(black, (int(x_avg), int(y_avg)), 30, (255, 255, 255), -1)
 
+    delta_d = (line_max.d - line_min.d) / 8.0
+
+    x1, y1, x2, y2 = line_min.x1, line_min.y1, line_min.x2, line_min.y2
+    x1 -= delta_d * math.cos(avg_theta + math.pi / 2.0)
+    x2 -= delta_d * math.cos(avg_theta + math.pi / 2.0)
+    y1 -= delta_d * math.sin(avg_theta + math.pi / 2.0)
+    y2 -= delta_d * math.sin(avg_theta + math.pi / 2.0)
+
+    line_min = LineSegment(x1, y1, x2, y2)
+
+    x1, y1, x2, y2 = line_max.x1, line_max.y1, line_max.x2, line_max.y2
+    x1 += delta_d * math.cos(avg_theta + math.pi / 2.0)
+    x2 += delta_d * math.cos(avg_theta + math.pi / 2.0)
+    y1 += delta_d * math.sin(avg_theta + math.pi / 2.0)
+    y2 += delta_d * math.sin(avg_theta + math.pi / 2.0)
+
+    line_max = LineSegment(x1, y1, x2, y2)
+
     w = line_max.distance(line_min.x, line_min.y)
-    h = w / 3.0 * 2.4
+    h = w / 3.0 * 2.1
     r_2 = (w ** 2 + h ** 2) / 4.0
 
     l = line_min
@@ -142,14 +161,14 @@ for filename in os.listdir(input_path):
     cv2.circle(black, (int(xn2), int(yn2)), 30, (255, 255, 255), -1)
     cv2.circle(black, (int(xn3), int(yn3)), 30, (255, 255, 255), -1)
     cv2.circle(black, (int(xn4), int(yn4)), 30, (255, 255, 255), -1)
-    # 3 4
-    # 1 2
-    pts1 = np.float32([[xn1, yn1], [xn3, yn3], [xn2, yn2], [xn4, yn4]])
+    #  4 3
+    #  2 1
+    pts1 = np.float32([[xn2, yn2], [xn4, yn4], [xn1, yn1], [xn3, yn3]])
     # pts1 = np.float32([[x_min, y_min], [x_max, y_min], [x_min, y_max], [x_max, y_max]])
-    pts2 = np.float32([[0, 0], [300, 0], [0, 200], [300, 200]])
+    pts2 = np.float32([[0, 0], [DST_WIDTH, 0], [0, DST_HEIGHT], [DST_WIDTH, DST_HEIGHT]])
     M = cv2.getPerspectiveTransform(pts1, pts2)
 
-    dst = cv2.warpPerspective(original, M, (300, 200))
+    dst = cv2.warpPerspective(original, M, (DST_WIDTH, DST_HEIGHT))
 
     xn1, yn1, xn3, yn3, xn2, yn2, xn4, yn4 = int(xn1), int(yn1), int(xn3), int(yn3), int(xn2), int(yn2), int(xn4), int(
         yn4)
@@ -166,5 +185,34 @@ for filename in os.listdir(input_path):
 
     cv2.imwrite(output_path + 'line_' + filename, img)
     cv2.imwrite(output_path + 'only_line_' + filename, black)
+
+    black_small = np.zeros(dst.shape, np.uint8)
+    gray = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
+    # gray = np.float32(gray)
+
+    method = 1
+
+    if method == 1:
+        dst1 = cv2.cornerHarris(gray, 2, 3, 0.04)
+        dst1 = cv2.dilate(dst1, None)
+        t = dst1 > 0.01 * dst1.max()
+        black_small[t] = [0, 0, 255]
+        up = t[0:40, :]
+        down = t[DST_HEIGHT - 41:DST_HEIGHT - 1, :]
+        if sum(sum(up)) > sum(sum(down)):
+            print filename + '倒了'
+            dst = cv2.flip(dst, -1)
+
+    elif method == 2:
+        sift = cv2.xfeatures2d.SIFT_create()
+        kp = sift.detect(gray, None)
+        black_small = cv2.drawKeypoints(black_small, kp)
+    elif method == 3:
+        fast = cv2.FastFeatureDetector_create()
+    elif method == 4:
+        laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+        black_small = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=5)
+
+    cv2.imwrite(output_path + 's_only_line_' + filename, black_small)
     cv2.imwrite(output_path + 'dst_' + filename, dst)
 cv2.destroyAllWindows()
