@@ -21,6 +21,7 @@ for filename in os.listdir(input_path):
     height, width, depth = img.shape
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
     edges = cv2.Canny(gray, 50, 150, apertureSize=3)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=80, maxLineGap=10)
     line_group = []
@@ -154,8 +155,8 @@ for filename in os.listdir(input_path):
     x_max = max_group[0].x1
     x_min = max_group[len(max_group) - 1].x1
 
-    y_min = min(map(lambda l: l.y1, max_group))
-    y_max = max(map(lambda l: l.y2, max_group))
+    y_min = min(map(lambda x: x.y1, max_group))
+    y_max = max(map(lambda x: x.y2, max_group))
 
     cv2.circle(black, (int(xn1), int(yn1)), 30, (255, 255, 255), -1)
     cv2.circle(black, (int(xn2), int(yn2)), 30, (255, 255, 255), -1)
@@ -164,7 +165,6 @@ for filename in os.listdir(input_path):
     #  4 3
     #  2 1
     pts1 = np.float32([[xn2, yn2], [xn4, yn4], [xn1, yn1], [xn3, yn3]])
-    # pts1 = np.float32([[x_min, y_min], [x_max, y_min], [x_min, y_max], [x_max, y_max]])
     pts2 = np.float32([[0, 0], [DST_WIDTH, 0], [0, DST_HEIGHT], [DST_WIDTH, DST_HEIGHT]])
     M = cv2.getPerspectiveTransform(pts1, pts2)
 
@@ -187,32 +187,25 @@ for filename in os.listdir(input_path):
     cv2.imwrite(output_path + 'only_line_' + filename, black)
 
     black_small = np.zeros(dst.shape, np.uint8)
-    gray = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
-    # gray = np.float32(gray)
+    gray_small = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
 
-    method = 1
-
-    if method == 1:
-        dst1 = cv2.cornerHarris(gray, 2, 3, 0.04)
-        dst1 = cv2.dilate(dst1, None)
-        t = dst1 > 0.01 * dst1.max()
-        black_small[t] = [0, 0, 255]
-        up = t[0:40, :]
-        down = t[DST_HEIGHT - 41:DST_HEIGHT - 1, :]
-        if sum(sum(up)) > sum(sum(down)):
-            print filename + '倒了'
-            dst = cv2.flip(dst, -1)
-
-    elif method == 2:
-        sift = cv2.xfeatures2d.SIFT_create()
-        kp = sift.detect(gray, None)
-        black_small = cv2.drawKeypoints(black_small, kp)
-    elif method == 3:
-        fast = cv2.FastFeatureDetector_create()
-    elif method == 4:
-        laplacian = cv2.Laplacian(gray, cv2.CV_64F)
-        black_small = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=5)
+    # 检测数字位置
+    dst1 = cv2.cornerHarris(gray_small, 2, 3, 0.04)
+    dst1 = cv2.dilate(dst1, None)
+    t = dst1 > 0.01 * dst1.max()
+    black_small[t] = [0, 0, 255]
+    up = t[0:40, :]
+    down = t[DST_HEIGHT - 41:DST_HEIGHT - 1, :]
+    if sum(sum(up)) > sum(sum(down)):
+        # 旋转180度
+        dst = cv2.flip(dst, -1)
 
     cv2.imwrite(output_path + 's_only_line_' + filename, black_small)
     cv2.imwrite(output_path + 'dst_' + filename, dst)
+
+    # print gray
+    gray_small[gray_small > 127] = 255
+    gray_small[gray_small <= 127] = 0
+    cv2.imwrite(output_path + "gray_" + filename, gray_small)
+
 cv2.destroyAllWindows()
