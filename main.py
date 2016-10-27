@@ -212,4 +212,31 @@ for filename in os.listdir(input_path):
     gray_small[gray_small <= avg_gray] = 0
     cv2.imwrite(output_path + "gray_" + filename, gray_small)
 
-# cv2.destroyAllWindows()
+    #尝试laplacian变换
+    laplacian = cv2.Laplacian(gray_small,cv2.CV_64F)
+    sobelx = cv2.Sobel(gray_small,cv2.CV_64F,0,1,ksize=5)
+    cv2.imwrite(output_path + "laplacian_" + filename, laplacian)
+    cv2.imwrite(output_path + "sobelx_" + filename, sobelx)
+
+    #尝试用颜色提取
+    lower_blue = np.array([100, 20, 20])
+    upper_blue = np.array([125, 255, 255])
+
+    hsv=cv2.cvtColor(dst,cv2.COLOR_BGR2HSV)
+    mask=hsv.copy()
+    mask=cv2.inRange(hsv,lower_blue,upper_blue)
+    mask=cv2.bitwise_not(mask)
+
+    cv2.imwrite(output_path+"color_"+filename,mask)
+
+    #尝试傅里叶变换
+
+    f = np.fft.fft2(gray_small)
+    fshift = np.fft.fftshift(f)
+    rows, cols = gray_small.shape
+    crow,ccol = rows/2 , cols/2
+    fshift[crow-30:crow+30, ccol-30:ccol+30] = 0
+    f_ishift = np.fft.ifftshift(fshift)
+    img_back = np.fft.ifft2(f_ishift)
+    img_back = np.abs(img_back)
+    cv2.imwrite(output_path+'fft_'+filename,img_back)
