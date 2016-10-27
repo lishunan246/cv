@@ -212,4 +212,4 @@ for filename in os.listdir(input_path):
     gray_small[gray_small <= avg_gray] = 0
     cv2.imwrite(output_path + "gray_" + filename, gray_small)
 
-cv2.destroyAllWindows()
+# cv2.destroyAllWindows()
