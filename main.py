@@ -199,13 +199,17 @@ for filename in os.listdir(input_path):
     if sum(sum(up)) > sum(sum(down)):
         # 旋转180度
         dst = cv2.flip(dst, -1)
+        gray_small = cv2.flip(gray_small,-1)
 
     cv2.imwrite(output_path + 's_only_line_' + filename, black_small)
     cv2.imwrite(output_path + 'dst_' + filename, dst)
 
-    # print gray
-    gray_small[gray_small > 127] = 255
-    gray_small[gray_small <= 127] = 0
+    # 使用平均灰度值进行二值化
+    height,width=gray_small.shape
+    avg_gray=sum(sum(1.0*gray_small))/(height*width)
+
+    gray_small[gray_small > avg_gray] = 255
+    gray_small[gray_small <= avg_gray] = 0
     cv2.imwrite(output_path + "gray_" + filename, gray_small)
 
 cv2.destroyAllWindows()
