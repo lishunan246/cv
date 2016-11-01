@@ -24,7 +24,7 @@ conv=signal.fftconvolve(img,cv2.flip(img2, -1),mode='same')
 convx=signal.fftconvolve(img,cv2.flip(imgx, -1),mode='same')
 convx2=signal.fftconvolve(img2,cv2.flip(imgx, -1),mode='same')
 conv1y=signal.fftconvolve(img,cv2.flip(imgy, -1),mode='same')
-
+plt.subplot(224),plt.imshow(conv,cmap='gray')
 print '1-1', conv1.max()
 print 'x-x', conv2.max()
 print '2-2', conv3.max()

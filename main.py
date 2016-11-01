@@ -5,6 +5,7 @@ import cv2
 import math
 import os
 from LineSegment import LineSegment, LineSegmentGroup
+from scipy import signal
 
 # 条形码比例3:2
 DST_WIDTH = 300
@@ -14,8 +15,13 @@ thickness = 10
 font = cv2.FONT_HERSHEY_SIMPLEX
 input_path = 'input//'
 output_path = 'output//'
+#所有图片文件名
+filenames=[]
+#所有被裁下的灰度图
+grays=[]
 
 for filename in os.listdir(input_path):
+    filenames.append(filename)
     original = cv2.imread(input_path + filename, cv2.IMREAD_COLOR)
     img = original.copy()
     height, width, depth = img.shape
@@ -205,38 +211,23 @@ for filename in os.listdir(input_path):
     cv2.imwrite(output_path + 'dst_' + filename, dst)
 
     # 使用平均灰度值进行二值化
-    height,width=gray_small.shape
-    avg_gray=sum(sum(1.0*gray_small))/(height*width)
+    # height,width=gray_small.shape
+    # avg_gray=sum(sum(1.0*gray_small))/(height*width)
 
-    gray_small[gray_small > avg_gray] = 255
-    gray_small[gray_small <= avg_gray] = 0
+    # gray_small[gray_small > avg_gray] = 255
+    # gray_small[gray_small <= avg_gray] = 0
     cv2.imwrite(output_path + "gray_" + filename, gray_small)
 
-    #尝试laplacian变换
-    laplacian = cv2.Laplacian(gray_small,cv2.CV_64F)
-    sobelx = cv2.Sobel(gray_small,cv2.CV_64F,0,1,ksize=5)
-    cv2.imwrite(output_path + "laplacian_" + filename, laplacian)
-    cv2.imwrite(output_path + "sobelx_" + filename, sobelx)
+    grays.append(gray)
 
-    #尝试用颜色提取
-    lower_blue = np.array([100, 20, 20])
-    upper_blue = np.array([125, 255, 255])
+convs=np.zeros(shape=(len(grays),len(grays)))
+for i in range(0,len(grays)):
+    for j in range(0,len(grays)):
+        print filenames[i],filenames[j]
+        t=signal.fftconvolve(grays[i],cv2.flip(grays[j], -1),mode='same')
+        convs[i][j]=t.max()
+        print t.max()
 
-    hsv=cv2.cvtColor(dst,cv2.COLOR_BGR2HSV)
-    mask=hsv.copy()
-    mask=cv2.inRange(hsv,lower_blue,upper_blue)
-    mask=cv2.bitwise_not(mask)
+f=open('result.txt','w')
 
-    cv2.imwrite(output_path+"color_"+filename,mask)
-
-    #尝试傅里叶变换
-
-    f = np.fft.fft2(gray_small)
-    fshift = np.fft.fftshift(f)
-    rows, cols = gray_small.shape
-    crow,ccol = rows/2 , cols/2
-    fshift[crow-30:crow+30, ccol-30:ccol+30] = 0
-    f_ishift = np.fft.ifftshift(fshift)
-    img_back = np.fft.ifft2(f_ishift)
-    img_back = np.abs(img_back)
-    cv2.imwrite(output_path+'fft_'+filename,img_back)
+f.write(np.matrix(convs))
