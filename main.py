@@ -15,10 +15,10 @@ thickness = 10
 font = cv2.FONT_HERSHEY_SIMPLEX
 input_path = 'input//'
 output_path = 'output//'
-#所有图片文件名
-filenames=[]
-#所有被裁下的灰度图
-grays=[]
+# 所有图片文件名
+filenames = []
+# 所有被裁下的灰度图
+grays = []
 
 for filename in os.listdir(input_path):
     filenames.append(filename)
@@ -205,29 +205,24 @@ for filename in os.listdir(input_path):
     if sum(sum(up)) > sum(sum(down)):
         # 旋转180度
         dst = cv2.flip(dst, -1)
-        gray_small = cv2.flip(gray_small,-1)
+        gray_small = cv2.flip(gray_small, -1)
 
     cv2.imwrite(output_path + 's_only_line_' + filename, black_small)
     cv2.imwrite(output_path + 'dst_' + filename, dst)
 
     # 使用平均灰度值进行二值化
-    # height,width=gray_small.shape
-    # avg_gray=sum(sum(1.0*gray_small))/(height*width)
+    height, width = gray_small.shape
+    avg_gray = sum(sum(1.0 * gray_small)) / (height * width)
 
-    # gray_small[gray_small > avg_gray] = 255
-    # gray_small[gray_small <= avg_gray] = 0
     cv2.imwrite(output_path + "gray_" + filename, gray_small)
+    std = np.std(gray_small)
+    gray_small = (gray_small - avg_gray) / std
+    grays.append(gray_small)
 
-    grays.append(gray)
+convs = np.zeros(shape=(len(grays), len(grays)))
+for i in range(0, len(grays)):
+    for j in range(0, len(grays)):
+        t = signal.fftconvolve(grays[i], cv2.flip(grays[j], -1), mode='same')
+        convs[i][j] = t.max()
 
-convs=np.zeros(shape=(len(grays),len(grays)))
-for i in range(0,len(grays)):
-    for j in range(0,len(grays)):
-        print filenames[i],filenames[j]
-        t=signal.fftconvolve(grays[i],cv2.flip(grays[j], -1),mode='same')
-        convs[i][j]=t.max()
-        print t.max()
-
-f=open('result.txt','w')
-
-f.write(np.matrix(convs))
+np.savetxt(output_path + 'Normalization.txt', convs / (DST_HEIGHT * DST_WIDTH), fmt='%-7.4f')
