@@ -8,6 +8,7 @@ from LineSegment import LineSegment, LineSegmentGroup
 from scipy import signal
 
 # 条形码比例3:2
+theta_tolerance=0.2
 DST_WIDTH = 300
 DST_HEIGHT = 200
 yellow = (0, 255, 255)
@@ -30,6 +31,9 @@ for filename in os.listdir(input_path):
 
     edges = cv2.Canny(gray, 50, 150, apertureSize=3)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=80, maxLineGap=10)
+    if  lines is None:
+        print filename+' No line detected.'
+        continue 
     line_group = []
     black = np.zeros((height, width, depth), np.uint8)
     for line in lines:
@@ -42,7 +46,7 @@ for filename in os.listdir(input_path):
         else:
             done = False
             for i in range(0, len(line_group)):
-                if abs(line_group[i][0].theta - ls.theta) < 0.1:  # 比较斜率
+                if abs(line_group[i][0].theta - ls.theta) < theta_tolerance:  # 比较斜率
                     line_group[i].append(ls)
                     done = True
                     break
@@ -105,9 +109,10 @@ for filename in os.listdir(input_path):
     y_avg += delta_d * math.sin(avg_theta + math.pi / 2.0)
 
     cv2.circle(black, (int(x_avg), int(y_avg)), 30, (255, 255, 255), -1)
-
-    delta_d = (line_max.d - line_min.d) / 8.0
-
+    cv2.imwrite(output_path + 'theta_' + filename, black)
+    continue
+    #delta_d = (line_max.d - line_min.d) / 8.0
+    delta_d=0
     x1, y1, x2, y2 = line_min.x1, line_min.y1, line_min.x2, line_min.y2
     x1 -= delta_d * math.cos(avg_theta + math.pi / 2.0)
     x2 -= delta_d * math.cos(avg_theta + math.pi / 2.0)
