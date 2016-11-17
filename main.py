@@ -17,7 +17,7 @@ red = (0, 0, 255)
 thickness = 10
 font = cv2.FONT_HERSHEY_SIMPLEX
 input_path = 'input//'
-output_path = 'output//'
+output_path = 'output\\'
 test_path = 'test//'
 
 input_dic = {}
@@ -26,6 +26,8 @@ test_dic = {}
 
 def get_grays(filename):
     original = cv2.imread(filename, cv2.IMREAD_COLOR)
+
+    filename = filename.split('//')[1]
     img = original.copy()
     height, width, depth = img.shape
 
@@ -36,7 +38,7 @@ def get_grays(filename):
     # edges = cv2.Canny(gray, 50, 150, apertureSize=3)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=80, maxLineGap=10)
     if lines is None:
-        print filename + ' No line detected.'
+        print(filename + ' No line detected.')
         return
 
     lss = []
@@ -256,19 +258,15 @@ def get_grays(filename):
     gray_small = (gray_small - avg_gray) / std
     return gray_small
 
+for file in os.listdir(input_path):
+    input_dic[file] = get_grays(input_path + file)
 
-for filename in os.listdir(output_path):
-    os.remove(output_path + filename)
-
-for filename in os.listdir(input_path):
-    input_dic[filename] = get_grays(input_path + filename)
-
-for filename in os.listdir(test_path):
-    test_dic[filename] = get_grays(test_path + filename)
+for file in os.listdir(test_path):
+    test_dic[file] = get_grays(test_path + file)
 
 for test_ in test_dic.keys():
     if test_dic[test_] is None:
-        print test_ + ' fail'
+        print(test_ + ' fail')
         continue
 
     t_max = 0
@@ -279,5 +277,5 @@ for test_ in test_dic.keys():
             t_max = t.max()
             name = input_
 
-    print test_ + ' like ' + name + ' ' + str(t_max / (DST_HEIGHT * DST_WIDTH))
+    print(test_ + ' like ' + name + ' ' + str(t_max / (DST_HEIGHT * DST_WIDTH)))
 
