@@ -61,7 +61,8 @@ def get_grays(filename):
         else:
             done = False
             for i in range(0, len(line_group)):
-                if abs(line_group[i][0].theta - ls.theta) < theta_tolerance:  # 比较斜率
+                if min(abs(line_group[i][0].theta - ls.theta),
+                       math.pi - abs(line_group[i][0].theta - ls.theta)) < theta_tolerance:  # 比较斜率
                     line_group[i].append(ls)
                     done = True
                     break
@@ -71,7 +72,11 @@ def get_grays(filename):
 
     max_group = max(line_group, key=lambda x: len(x))
 
-    avg_theta = sum([ls.theta for ls in max_group]) / float(len(max_group))
+    if all(abs(x.k < 1.0) for x in max_group):
+        avg_k = sum([ls.k for ls in max_group]) / float(len(max_group))
+        avg_theta = math.atan(avg_k)
+    else:
+        avg_theta = sum([ls.theta for ls in max_group]) / float(len(max_group))
 
     for ls in max_group:
         # 根据斜率找到的线段
@@ -258,6 +263,12 @@ def get_grays(filename):
     gray_small = (gray_small - avg_gray) / std
     return gray_small
 
+
+for file in os.listdir(output_path):
+    os.remove(output_path + file)
+
+# get_grays(test_path+'n2.jpg')
+
 for file in os.listdir(input_path):
     input_dic[file] = get_grays(input_path + file)
 
@@ -278,4 +289,3 @@ for test_ in test_dic.keys():
             name = input_
 
     print(test_ + ' like ' + name + ' ' + str(t_max / (DST_HEIGHT * DST_WIDTH)))
-

@@ -17,10 +17,10 @@ class LineSegment:
         self.y = (self.y1 + self.y2) / 2.0
         self.x = (self.x1 + self.x2) / 2.0
 
-        self.k = (y1 - y2) / (1.0 * (x1 - x2)) if x1 != x2 else float('nan')
+        self.k = (y1 - y2) / (1.0 * (x1 - x2)) if x1 != x2 else float('inf')
         self.b = y1 - self.k * x1 if x1 != x2 else float('nan')
 
-        self.theta = math.atan2(y1 - y2, x1 - x2)
+        self.theta = math.atan2(y2 - y1, x2 - x1)
         self.d = self.distance(0, 0)
         # 到直线到原点的最近距离
 
