@@ -12,21 +12,20 @@ theta_tolerance = 0.2
 DST_WIDTH = 300
 DST_HEIGHT = 200
 yellow = (0, 255, 255)
+green = (0, 255, 0)
+red = (0, 0, 255)
 thickness = 10
 font = cv2.FONT_HERSHEY_SIMPLEX
 input_path = 'input//'
 output_path = 'output//'
-# 所有图片文件名
-filenames = []
-# 所有被裁下的灰度图
-grays = []
+test_path = 'test//'
 
-for filename in os.listdir(output_path):
-    os.remove(output_path+filename)
+input_dic = {}
+test_dic = {}
 
-for filename in os.listdir(input_path):
-    filenames.append(filename)
-    original = cv2.imread(input_path + filename, cv2.IMREAD_COLOR)
+
+def get_grays(filename):
+    original = cv2.imread(filename, cv2.IMREAD_COLOR)
     img = original.copy()
     height, width, depth = img.shape
 
@@ -38,14 +37,23 @@ for filename in os.listdir(input_path):
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=80, maxLineGap=10)
     if lines is None:
         print filename + ' No line detected.'
-        continue
-    line_group = []
+        return
+
+    lss = []
     black = np.zeros((height, width, depth), np.uint8)
+
     for line in lines:
         x1, y1, x2, y2 = line[0]
+        cv2.line(img, (x1, y1), (x2, y2), green, 1)
+        cv2.line(black, (x1, y1), (x2, y2), green, 1)
         ls = LineSegment(x1, y1, x2, y2)
-        cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 1)
-        cv2.line(black, (x1, y1), (x2, y2), (0, 255, 0), 1)
+        lss.append(ls)
+
+    lines = sorted(lss, key=lambda x: x.theta)
+    line_group = []
+
+    for ls in lines:
+
         if len(line_group) == 0:  # first line group
             line_group.append([ls])
         else:
@@ -74,7 +82,7 @@ for filename in os.listdir(input_path):
     for i in range(0, len(max_group)):
         ls = max_group[i]
         x1, x2, y1, y2 = ls.x1, ls.x2, ls.y1, ls.y2
-        cv2.line(black2, (x1, y1), (x2, y2), (0, 0, 255), 3)
+        cv2.line(black2, (x1, y1), (x2, y2), red, 3)
 
         j = len(group_d) - 1
         if j < 0:
@@ -236,7 +244,7 @@ for filename in os.listdir(input_path):
         dst = cv2.flip(dst, -1)
         gray_small = cv2.flip(gray_small, -1)
 
-    cv2.imwrite(output_path + 's_only_line_' + filename, black_small)
+    # cv2.imwrite(output_path + 's_only_line_' + filename, black_small)
     cv2.imwrite(output_path + 'dst_' + filename, dst)
 
     # 使用平均灰度值进行二值化
@@ -246,12 +254,30 @@ for filename in os.listdir(input_path):
     cv2.imwrite(output_path + "gray_" + filename, gray_small)
     std = np.std(gray_small)
     gray_small = (gray_small - avg_gray) / std
-    grays.append(gray_small)
+    return gray_small
 
-convs = np.zeros(shape=(len(grays), len(grays)))
-for i in range(0, len(grays)):
-    for j in range(0, len(grays)):
-        t = signal.fftconvolve(grays[i], cv2.flip(grays[j], -1), mode='same')
-        convs[i][j] = t.max()
 
-np.savetxt(output_path + 'Normalization.txt', convs / (DST_HEIGHT * DST_WIDTH), fmt='%-7.4f')
+for filename in os.listdir(output_path):
+    os.remove(output_path + filename)
+
+for filename in os.listdir(input_path):
+    input_dic[filename] = get_grays(input_path + filename)
+
+for filename in os.listdir(test_path):
+    test_dic[filename] = get_grays(test_path + filename)
+
+for test_ in test_dic.keys():
+    if test_dic[test_] is None:
+        print test_ + ' fail'
+        continue
+
+    t_max = 0
+    name = ''
+    for input_ in input_dic.keys():
+        t = signal.fftconvolve(input_dic[input_], cv2.flip(test_dic[test_], -1), mode='same')
+        if t_max < t.max():
+            t_max = t.max()
+            name = input_
+
+    print test_ + ' like ' + name + ' ' + str(t_max / (DST_HEIGHT * DST_WIDTH))
+
